@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USB Device Detection</title>
+</head>
+<body>
+  <h1>USB Device Detection</h1>
+  <button id="connectButton">Connect to USB Device</button>
+  <div id="deviceInfo"></div>
+
+  <script>
+    // Check if WebUSB is supported in the browser
+    if ('usb' in navigator) {
+      console.log('WebUSB is supported!');
+    } else {
+      document.getElementById('deviceInfo').textContent = "WebUSB is not supported in this browser.";
+    }
+
+    // Button click handler to request USB device connection
+    document.getElementById('connectButton').addEventListener('click', async () => {
+      try {
+        // Request the device, can specify filters if needed
+        const device = await navigator.usb.requestDevice({ filters: [{}] });
+
+        // Once a device is selected, display device information
+        const deviceInfo = `
+          Device Name: ${device.productName}<br>
+          Manufacturer: ${device.manufacturerName}<br>
+          Device Version: ${device.deviceVersion}<br>
+          Vendor ID: ${device.vendorId}<br>
+          Product ID: ${device.productId}<br>
+        `;
+        document.getElementById('deviceInfo').innerHTML = deviceInfo;
+
+        // Open the device (optional, depending on your needs)
+        await device.open();
+        console.log('Device opened successfully.');
+
+      } catch (error) {
+        // Handle errors or if the user cancels the selection
+        console.error('Error: ', error);
+        document.getElementById('deviceInfo').textContent = "Error accessing USB device.";
+      }
+    });
+  </script>
+</body>
+</html>
