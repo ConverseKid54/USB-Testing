@@ -8,7 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
         }
         h1 {
@@ -41,18 +41,23 @@
     <button id="requestDevices">List USB Devices</button>
     <div id="deviceList"></div>
 
-    <script>
-        // Dymo Vendor ID and Product ID for the scale
-        const DymoVendorId = 0x0922;  // Vendor ID for Dymo devices
-        const DymoProductId = 0x8003; // Product ID for the specific Dymo scale
+    <h2>All USB Devices Found:</h2>
+    <div id="allDeviceList"></div>
 
-        // This function lists all available USB devices
+    <script>
+        // Correct Vendor ID and Product ID for Dymo Scale
+        const DymoVendorId = 2338;   // Vendor ID for Dymo
+        const DymoProductId = 32771; // Product ID for Dymo Scale
+
+        // Function to list all USB devices
         async function listUSBDevices() {
             const deviceListContainer = document.getElementById('deviceList');
+            const allDeviceListContainer = document.getElementById('allDeviceList');
             deviceListContainer.innerHTML = '';  // Clear previous list
+            allDeviceListContainer.innerHTML = '';  // Clear all device list
             
             try {
-                // Request a USB device with any available permission.
+                // Request all available USB devices
                 const devices = await navigator.usb.getDevices();
 
                 // If no devices are found
@@ -61,23 +66,35 @@
                     return;
                 }
 
-                // Filter for the Dymo scale using vendor and product IDs
+                // Show all available USB devices
+                devices.forEach(device => {
+                    const deviceElement = document.createElement('div');
+                    deviceElement.classList.add('device');
+                    deviceElement.innerHTML = `
+                        <strong>${device.productName || 'Unknown Device'}</strong><br>
+                        Vendor ID: ${device.vendorId} <br>
+                        Product ID: ${device.productId} <br>
+                    `;
+                    allDeviceListContainer.appendChild(deviceElement);
+                });
+
+                // Filter Dymo devices
                 const dymoDevices = devices.filter(device => 
                     device.vendorId === DymoVendorId && device.productId === DymoProductId
                 );
 
-                // If no matching Dymo devices are found
+                // If no Dymo scale devices are found
                 if (dymoDevices.length === 0) {
                     deviceListContainer.innerHTML = '<p>No Dymo scale devices found.</p>';
                     return;
                 }
 
-                // Loop through all found Dymo devices and display their basic info
+                // List all found Dymo devices
                 dymoDevices.forEach(device => {
                     const deviceElement = document.createElement('div');
                     deviceElement.classList.add('device');
                     deviceElement.innerHTML = `
-                        <strong>${device.productName || 'Unknown Dymo Device'}</strong><br>
+                        <strong>${device.productName || 'Dymo Scale'}</strong><br>
                         Vendor ID: ${device.vendorId} <br>
                         Product ID: ${device.productId} <br>
                         <button onclick="connectDevice(${device.vendorId}, ${device.productId}, '${device.productName}')">Connect</button>
@@ -90,7 +107,7 @@
             }
         }
 
-        // This function connects to the selected Dymo scale
+        // Connect to the selected Dymo scale
         async function connectDevice(vendorId, productId, productName) {
             try {
                 const device = await navigator.usb.requestDevice({
@@ -105,20 +122,16 @@
                 await device.open();
                 console.log('Device opened:', device);
 
-                // Select configuration and claim interface (you may need to adjust this depending on the scale's USB interface)
+                // Select configuration and claim interface (Adjust this based on scale's USB interface)
                 await device.selectConfiguration(1);
                 await device.claimInterface(0);
 
                 console.log('Device successfully connected and ready to use!');
                 
-                // At this point, you can start communicating with the scale
-                // Example: send a control transfer to interact with the scale
+                // After connecting, you can send control transfers or interact with the scale
 
-                // Show a success message
+                // Show success message
                 alert(`Successfully connected to ${productName || 'Dymo Scale'}`);
-
-                // You can now interact with the scale via control transfers
-                // For example, if the scale requires a specific command to read the weight, you would use device.controlTransferOut() / device.controlTransferIn()
 
             } catch (error) {
                 console.error('Error connecting to device:', error);
