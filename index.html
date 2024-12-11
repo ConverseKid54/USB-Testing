@@ -22,8 +22,8 @@
     // Button click handler to request USB device connection
     document.getElementById('connectButton').addEventListener('click', async () => {
       try {
-        // Request the device (replace with appropriate filters if needed)
-        const device = await navigator.usb.requestDevice({ filters: [{}] });
+        // Request the device (adjust filters to target the scale)
+        const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234, productId: 0x5678 }] });
 
         // Once a device is selected, display basic device information
         const deviceInfo = `
@@ -39,19 +39,18 @@
         await device.open();
         console.log('Device opened successfully.');
 
-        // Claim the interface (replace with correct interface number for your device)
-        await device.selectConfiguration(1); // Usually 1, but this depends on the device
-        await device.claimInterface(0); // Claim interface 0 (or the appropriate interface)
+        // Claim the interface (typically 0, but check scale docs for the correct interface)
+        await device.selectConfiguration(1);
+        await device.claimInterface(0);
 
-        // Send the command to read weight (this depends on the scale's protocol)
-        // This is a placeholder - replace with the correct logic for your scale
-        const weightCommand = new Uint8Array([0x01, 0x00]); // Replace with scale-specific command
-        await device.transferOut(1, weightCommand); // Send the command to endpoint 1 (or appropriate endpoint)
+        // Send the command to request the weight (adjust this to your scale's protocol)
+        const weightCommand = new Uint8Array([0x01]); // Example: command to request weight
+        await device.transferOut(1, weightCommand); // Send command to endpoint 1
 
-        // Read the response (this depends on the scale's protocol and endpoint)
+        // Read the response (adjust based on your scale's data format)
         const response = await device.transferIn(1, 64); // Read data from endpoint 1
         const weightData = new TextDecoder().decode(response.data); // Assuming weight is returned as text
-
+        
         // Display the weight
         document.getElementById('weightInfo').textContent = `Weight: ${weightData}`;
 
