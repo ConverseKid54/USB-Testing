@@ -1,15 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USB Device Detection</title>
+  <title>USB Scale Detection</title>
 </head>
 <body>
-  <h1>USB Device Detection</h1>
-  <button id="connectButton">Connect to USB Device</button>
+  <h1>USB Scale Detection</h1>
+  <button id="connectButton">Connect to USB Scale</button>
   <div id="deviceInfo"></div>
+  <div id="weightInfo"></div>
 
   <script>
     // Check if WebUSB is supported in the browser
@@ -22,10 +22,10 @@
     // Button click handler to request USB device connection
     document.getElementById('connectButton').addEventListener('click', async () => {
       try {
-        // Request the device, can specify filters if needed
+        // Request the device (replace with appropriate filters if needed)
         const device = await navigator.usb.requestDevice({ filters: [{}] });
 
-        // Once a device is selected, display device information
+        // Once a device is selected, display basic device information
         const deviceInfo = `
           Device Name: ${device.productName}<br>
           Manufacturer: ${device.manufacturerName}<br>
@@ -35,14 +35,34 @@
         `;
         document.getElementById('deviceInfo').innerHTML = deviceInfo;
 
-        // Open the device (optional, depending on your needs)
+        // Open the device
         await device.open();
         console.log('Device opened successfully.');
+
+        // Claim the interface (replace with correct interface number for your device)
+        await device.selectConfiguration(1); // Usually 1, but this depends on the device
+        await device.claimInterface(0); // Claim interface 0 (or the appropriate interface)
+
+        // Send the command to read weight (this depends on the scale's protocol)
+        // This is a placeholder - replace with the correct logic for your scale
+        const weightCommand = new Uint8Array([0x01, 0x00]); // Replace with scale-specific command
+        await device.transferOut(1, weightCommand); // Send the command to endpoint 1 (or appropriate endpoint)
+
+        // Read the response (this depends on the scale's protocol and endpoint)
+        const response = await device.transferIn(1, 64); // Read data from endpoint 1
+        const weightData = new TextDecoder().decode(response.data); // Assuming weight is returned as text
+
+        // Display the weight
+        document.getElementById('weightInfo').textContent = `Weight: ${weightData}`;
+
+        // Optionally, close the device when done
+        await device.close();
 
       } catch (error) {
         // Handle errors or if the user cancels the selection
         console.error('Error: ', error);
-        document.getElementById('deviceInfo').textContent = "Error accessing USB device.";
+        document.getElementById('deviceInfo').textContent = "Error accessing USB scale.";
+        document.getElementById('weightInfo').textContent = "";
       }
     });
   </script>
