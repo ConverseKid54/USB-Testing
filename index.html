@@ -22,8 +22,8 @@
     // Button click handler to request USB device connection
     document.getElementById('connectButton').addEventListener('click', async () => {
       try {
-        // Request the device (adjust filters to target the scale)
-        const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234, productId: 0x5678 }] });
+        // Request the device (no filters to get all devices)
+        const device = await navigator.usb.requestDevice({ filters: [] });
 
         // Once a device is selected, display basic device information
         const deviceInfo = `
