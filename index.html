@@ -1,69 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USB Scale Detection</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB Devices</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        #deviceList {
+            margin-top: 20px;
+        }
+        .device {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-  <h1>USB Scale Detection</h1>
-  <button id="connectButton">Connect to USB Scale</button>
-  <div id="deviceInfo"></div>
-  <div id="weightInfo"></div>
+    <h1>USB Devices</h1>
+    <button id="requestDevices">List USB Devices</button>
+    <div id="deviceList"></div>
 
-  <script>
-    // Check if WebUSB is supported in the browser
-    if ('usb' in navigator) {
-      console.log('WebUSB is supported!');
-    } else {
-      document.getElementById('deviceInfo').textContent = "WebUSB is not supported in this browser.";
-    }
+    <script>
+        // This function lists all available USB devices
+        async function listUSBDevices() {
+            const deviceListContainer = document.getElementById('deviceList');
+            deviceListContainer.innerHTML = '';  // Clear previous list
+            
+            try {
+                // Request a USB device with any available permission.
+                const devices = await navigator.usb.getDevices();
 
-    // Button click handler to request USB device connection
-    document.getElementById('connectButton').addEventListener('click', async () => {
-      try {
-        // Request the device (no filters to get all devices)
-        const device = await navigator.usb.requestDevice({ filters: [] });
+                // If no devices are found
+                if (devices.length === 0) {
+                    deviceListContainer.innerHTML = '<p>No USB devices found.</p>';
+                    return;
+                }
 
-        // Once a device is selected, display basic device information
-        const deviceInfo = `
-          Device Name: ${device.productName}<br>
-          Manufacturer: ${device.manufacturerName}<br>
-          Device Version: ${device.deviceVersion}<br>
-          Vendor ID: ${device.vendorId}<br>
-          Product ID: ${device.productId}<br>
-        `;
-        document.getElementById('deviceInfo').innerHTML = deviceInfo;
+                // Loop through all devices and display their basic info
+                devices.forEach(device => {
+                    const deviceElement = document.createElement('div');
+                    deviceElement.classList.add('device');
+                    deviceElement.innerHTML = `
+                        <strong>${device.productName || 'Unknown Device'}</strong><br>
+                        Vendor ID: ${device.vendorId} <br>
+                        Product ID: ${device.productId} <br>
+                        <button onclick="connectDevice(${device.vendorId}, ${device.productId}, '${device.productName}')">Connect</button>
+                    `;
+                    deviceListContainer.appendChild(deviceElement);
+                });
+            } catch (error) {
+                console.error('Error listing devices:', error);
+                deviceListContainer.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
 
-        // Open the device
-        await device.open();
-        console.log('Device opened successfully.');
+        // This function is used to connect to a selected USB device
+        async function connectDevice(vendorId, productId, productName) {
+            try {
+                const device = await navigator.usb.requestDevice({
+                    filters: [
+                        { vendorId: vendorId, productId: productId }
+                    ]
+                });
 
-        // Claim the interface (typically 0, but check scale docs for the correct interface)
-        await device.selectConfiguration(1);
-        await device.claimInterface(0);
+                console.log(`Connected to device: ${productName || 'Unknown Device'}`);
+                
+                // Open the device
+                await device.open();
+                console.log('Device opened:', device);
 
-        // Send the command to request the weight (adjust this to your scale's protocol)
-        const weightCommand = new Uint8Array([0x01]); // Example: command to request weight
-        await device.transferOut(1, weightCommand); // Send command to endpoint 1
+                // Select configuration and claim interface
+                await device.selectConfiguration(1);
+                await device.claimInterface(0);
 
-        // Read the response (adjust based on your scale's data format)
-        const response = await device.transferIn(1, 64); // Read data from endpoint 1
-        const weightData = new TextDecoder().decode(response.data); // Assuming weight is returned as text
-        
-        // Display the weight
-        document.getElementById('weightInfo').textContent = `Weight: ${weightData}`;
+                console.log('Device successfully connected and ready to use!');
+                
+                // After connecting, you can send/receive control transfer or communicate with the device here.
+                // For example, if it's a weight scale, you might interact with it by sending control transfers.
 
-        // Optionally, close the device when done
-        await device.close();
+                // Show a success message
+                alert(`Successfully connected to ${productName || 'Device'}`);
 
-      } catch (error) {
-        // Handle errors or if the user cancels the selection
-        console.error('Error: ', error);
-        document.getElementById('deviceInfo').textContent = "Error accessing USB scale.";
-        document.getElementById('weightInfo').textContent = "";
-      }
-    });
-  </script>
+            } catch (error) {
+                console.error('Error connecting to device:', error);
+                alert(`Failed to connect to the device. Error: ${error.message}`);
+            }
+        }
+
+        // Setup event listener for the "List USB Devices" button
+        document.getElementById('requestDevices').addEventListener('click', listUSBDevices);
+    </script>
 </body>
 </html>
